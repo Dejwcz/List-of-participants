@@ -1,0 +1,29 @@
+﻿<Window x:Class="Seznam_ucastniku.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Seznam_ucastniku"
+        mc:Ignorable="d"
+        Title="Seznam Helf" Height="550" Width="900" WindowStartupLocation="CenterScreen" Activated="Window_Activated" MinWidth="300">
+    <Window.Resources>
+        <local:BoolToTextConverter x:Key="BoolToTextConverter"/>
+    </Window.Resources>
+
+    <Grid>
+        <Button x:Name="BNewRecord" Content="Nový záznam" HorizontalAlignment="Left" Margin="50,50,0,0" VerticalAlignment="Top" Height="40" Width="140" Click="BNewRecord_Click" Grid.ColumnSpan="2"/>
+        <Button x:Name="BStats" Content="Počty" HorizontalAlignment="Right" Margin="0,50,50,0" VerticalAlignment="Top" Width="140" Height="40" Grid.Column="2"/>
+        <DataGrid x:Name="DGRecords" AutoGenerateColumns="False" Margin="49,120,49,50"  MinWidth="700" MinHeight="300" Grid.ColumnSpan="3" IsReadOnly="True" MouseDoubleClick="DGRecords_MouseDoubleClick">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Jméno" Binding="{Binding FirstName}" Width="*"/>
+                <DataGridTextColumn Header="Příjmení" Binding="{Binding LastName}" Width="*"/>
+                <DataGridTextColumn Header="Přezdívka" Binding="{Binding NickName}" Width="*"/>
+                <DataGridTextColumn Header="Příjezd" Binding="{Binding InDay,StringFormat={}{0:dd.MM.yyyy}}" Width="*"/>
+                <DataGridTextColumn Header="Oběd při příjezdu" Binding="{Binding InDayLunch, Converter={StaticResource BoolToTextConverter}}" Width="*"/>
+                <DataGridTextColumn Header="Odjezd" Binding="{Binding OutDay, StringFormat={}{0:dd.MM.yyyy}}" Width="*"/>
+                <DataGridTextColumn Header="Oběd při odjezdu" Binding="{Binding OutDayLunch, Converter={StaticResource BoolToTextConverter}}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <Button x:Name="BNickNameList" Content="Seznam s přezdívkami" HorizontalAlignment="Left" Margin="223,50,0,0" VerticalAlignment="Top" Width="140" Height="40"/>
+    </Grid>
+</Window>

@@ -1,0 +1,207 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
+using Seznam_ucastniku.DataAcces;
+using Seznam_ucastniku.Entities;
+using System.Globalization;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using System.Linq; 
+
+namespace Seznam_ucastniku
+{
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
+    {       
+        public class CWNewRecord : Window
+        {
+            protected TextBox TFirstName, TLastName, TNickName;
+            protected DatePicker DPInDate, DPOutDate;
+            protected CheckBox CInDateLunch, COutDateLunch;
+
+            public CWNewRecord()
+            {
+                InicializeComponents();
+            }
+            protected void InicializeComponents()
+            {
+                Width = 425; Height = 500; WindowStartupLocation = WindowStartupLocation.CenterScreen; ResizeMode = ResizeMode.NoResize; 
+                Topmost = true;
+
+                StackPanel SPMain = new StackPanel();
+                StackPanel SPLine1 = new StackPanel { Orientation = Orientation.Horizontal };
+                StackPanel SPLine2 = new StackPanel { Orientation = Orientation.Horizontal };
+                StackPanel SPLine3 = new StackPanel { Orientation = Orientation.Horizontal };
+                StackPanel SPLine4 = new StackPanel { Orientation = Orientation.Horizontal };
+                StackPanel SPLine5 = new StackPanel { Orientation = Orientation.Horizontal };
+                StackPanel SPLine6 = new StackPanel { Orientation = Orientation.Horizontal };
+
+                Label LFirstName = new Label { Content = "Jméno", Margin = new Thickness(20), Width = 100, Height = 30 };
+                TFirstName = new TextBox { Margin = new Thickness(20), Width=200, Height = 30 };
+                SPLine1.Children.Add(LFirstName);SPLine1.Children.Add(TFirstName);
+                SPMain.Children.Add(SPLine1);
+                Label LLastName = new Label { Content = "Příjmení", Margin = new Thickness(20), Width = 100, Height = 30 };
+                TLastName = new TextBox { Margin = new Thickness(20), Width = 200, Height = 30 };
+                SPLine2.Children.Add(LLastName); SPLine2.Children.Add(TLastName);
+                SPMain.Children.Add(SPLine2);
+                Label LNickName = new Label { Content = "Přezdívka", Margin = new Thickness(20), Width = 100, Height = 30 };
+                TNickName = new TextBox { Margin = new Thickness(20), Width = 200, Height = 30 };
+                SPLine3.Children.Add(LNickName); SPLine3.Children.Add(TNickName);
+                SPMain.Children.Add(SPLine3);
+                Label LInDate = new Label { Content = "Příjezd", Margin = new Thickness(20), Width = 80, Height = 30 };
+                DPInDate = new DatePicker { Width = 150, Height = 30 };
+                Label LInDateLunch = new Label { Content = "Oběd", Margin = new Thickness(20), Width = 40, Height = 30 };
+                CInDateLunch = new CheckBox { IsChecked = false, VerticalAlignment = VerticalAlignment.Center };
+                SPLine4.Children.Add(LInDate); SPLine4.Children.Add(DPInDate);SPLine4.Children.Add(LInDateLunch);SPLine4.Children.Add(CInDateLunch);
+                SPMain.Children.Add(SPLine4);
+                Label LOutDate = new Label { Content = "Odjezd", Margin = new Thickness(20), Width = 80, Height = 30 };
+                DPOutDate = new DatePicker { Width = 150, Height = 30 };
+                Label LOutDateLunch = new Label { Content = "Oběd", Margin = new Thickness(20), Width = 40, Height = 30 };
+                COutDateLunch = new CheckBox { IsChecked = false, VerticalAlignment = VerticalAlignment.Center };
+                SPLine5.Children.Add(LOutDate); SPLine5.Children.Add(DPOutDate); SPLine5.Children.Add(LOutDateLunch); SPLine5.Children.Add(COutDateLunch);
+                SPMain.Children.Add(SPLine5);
+                Button BSave = new Button { Content = "Ulož", Margin = new Thickness(25), Width = 150, Height = 30 };
+                Button BBack = new Button { Content = "Zpět", Margin = new Thickness(25), Width = 150, Height = 30 };
+                BSave.Click += (sender, e) => SaveRecord();
+                BBack.Click += (sender, e) => this.Close();
+                SPLine6.Children.Add(BSave);SPLine6.Children.Add(BBack);
+                SPMain.Children.Add(SPLine6);
+                this.Content = SPMain;
+            }
+            public virtual async void SaveRecord()
+            {
+                Record NewRecord = new Record
+                {
+                    FirstName = this.TFirstName.Text,
+                    LastName = TLastName.Text,
+                    NickName = TNickName.Text,
+                    InDay = DateOnly.FromDateTime(DPInDate.DisplayDate),
+                    InDayLunch = CInDateLunch.IsChecked,
+                    OutDay = DateOnly.FromDateTime(DPOutDate.DisplayDate),
+                    OutDayLunch = COutDateLunch.IsChecked,
+                };
+                await using (var context = new SUDBContext())
+                {
+                    await context.Records.AddAsync(NewRecord);
+                    await context.SaveChangesAsync();
+                }
+                MessageBox.Show(this,"Záznam byl uložen");
+                this.Close();
+            }
+        }
+        public class CWEditRecord : CWNewRecord
+        {
+            private int _recordId;
+
+            public CWEditRecord(int recordId) : base()
+            {
+                _recordId = recordId;
+                LoadRecordData();
+            }
+            private async void LoadRecordData() 
+            {
+                using (var context = new SUDBContext())
+                {
+                    var record = await context.Records.FirstAsync(r => r.Id == _recordId);
+                    if (record != null)
+                    {
+                        TFirstName.Text = record.FirstName;
+                        TLastName.Text = record.LastName;
+                        TNickName.Text = record.NickName;
+                        DPInDate.SelectedDate = DateTime.Parse(record.InDay.ToString());
+                        CInDateLunch.IsChecked = record.InDayLunch;
+                        DPOutDate.SelectedDate = DateTime.Parse(record.OutDay.ToString());
+                        COutDateLunch.IsChecked = record.OutDayLunch;
+                    }
+                }
+            }
+            public override async void SaveRecord()
+            {
+                using (var context = new SUDBContext())
+                {
+                    var record = context.Records.FirstOrDefault(r => r.Id == _recordId);
+                    if (record != null)
+                    {
+                        record.FirstName = TFirstName.Text;
+                        record.LastName = TLastName.Text;
+                        record.NickName = TNickName.Text;
+                        record.InDay = DateOnly.FromDateTime(DPInDate.SelectedDate.Value);
+                        record.InDayLunch = CInDateLunch.IsChecked;
+                        record.OutDay = DateOnly.FromDateTime(DPOutDate.SelectedDate.Value);
+                        record.OutDayLunch = COutDateLunch.IsChecked;
+
+                        await context.SaveChangesAsync();
+                    }
+                }
+                MessageBox.Show(this, "Záznam byl aktualizován");
+                this.Close();
+            }
+            
+        }
+        public MainWindow()
+        {
+            InitializeComponent();
+            LoadData();
+        }
+        private void LoadData()
+        {
+            using (var context = new SUDBContext())
+            {
+                var records = context.Records.ToList();
+                DGRecords.ItemsSource = records;
+            }
+                
+        }
+
+        private void BNewRecord_Click(object sender, RoutedEventArgs e)
+        {
+            var WNewRecord = new CWNewRecord();
+            WNewRecord.ShowDialog();
+        }
+
+        private void DGRecords_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is DataGrid datagrid && datagrid.SelectedItem is Record selectedRecord)
+            {
+                int selectedId = selectedRecord.Id;
+                var WEditRecord = new CWEditRecord(selectedId);
+                WEditRecord.ShowDialog();
+            }
+        }
+
+        private void Window_Activated(object sender, EventArgs e)
+        {
+            LoadData();
+        }
+    }
+    public class BoolToTextConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue)
+            {
+                return boolValue ? "ano" : "ne";
+            }
+            return null;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is string stringValue)
+            {
+                return stringValue.ToLower() == "ano";
+            }
+            return null;
+        }
+    }
+
+}
