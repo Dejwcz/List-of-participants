@@ -13,7 +13,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Linq; 
+using System.Linq;
+using Microsoft.Win32;
 
 namespace Seznam_ucastniku
 {
@@ -35,7 +36,7 @@ namespace Seznam_ucastniku
             protected void InicializeComponents()
             {
                 Width = 425; Height = 500; WindowStartupLocation = WindowStartupLocation.CenterScreen; ResizeMode = ResizeMode.NoResize; 
-                Topmost = true;
+                Topmost = true; Title = "Nový záznam";
 
                 StackPanel SPMain = new StackPanel();
                 StackPanel SPLine1 = new StackPanel { Orientation = Orientation.Horizontal };
@@ -84,9 +85,9 @@ namespace Seznam_ucastniku
                     FirstName = this.TFirstName.Text,
                     LastName = TLastName.Text,
                     NickName = TNickName.Text,
-                    InDay = DateOnly.FromDateTime(DPInDate.DisplayDate),
+                    InDay = DateOnly.FromDateTime(DPInDate.SelectedDate.Value),
                     InDayLunch = CInDateLunch.IsChecked,
-                    OutDay = DateOnly.FromDateTime(DPOutDate.DisplayDate),
+                    OutDay = DateOnly.FromDateTime(DPOutDate.SelectedDate.Value),
                     OutDayLunch = COutDateLunch.IsChecked,
                 };
                 await using (var context = new SUDBContext())
@@ -105,6 +106,7 @@ namespace Seznam_ucastniku
             public CWEditRecord(int recordId) : base()
             {
                 _recordId = recordId;
+                this.Title = "Editace záznamu";
                 LoadRecordData();
             }
             private async void LoadRecordData() 
@@ -147,6 +149,74 @@ namespace Seznam_ucastniku
             }
             
         }
+        public class CWNickNamesList : Window
+        {
+            protected Label LSelectedDate, LSumOfRecords;
+            protected DatePicker DPSelectedDate;
+            protected DataGrid DGList;
+            protected Button BExport, BBack;
+            public CWNickNamesList()
+            {
+                InicializeComponents();
+            }
+            protected void InicializeComponents()
+            {
+                Width = 425; Height = 500; WindowStartupLocation = WindowStartupLocation.CenterScreen; ResizeMode = ResizeMode.NoResize;
+                Topmost = true; Title = "Seznam s přezdívkami";
+
+                StackPanel SPMain = new StackPanel();
+                StackPanel SPLine1 = new StackPanel { Orientation = Orientation.Horizontal };
+                StackPanel SPLine2 = new StackPanel { Orientation = Orientation.Horizontal };
+                LSelectedDate = new Label { Content = "Vyber datum", Margin = new Thickness(20), Width = 100, Height = 30 };
+                DPSelectedDate = new DatePicker { Width = 150, Height = 30 };
+                DPSelectedDate.SelectedDateChanged += (sender, e) => ShowList();
+                SPLine1.Children.Add(LSelectedDate); SPLine1.Children.Add(DPSelectedDate);
+                SPMain.Children.Add(SPLine1);
+                LSumOfRecords = new Label { Content = "Celkem: ", Width = 100, Height = 30 };
+                SPMain.Children.Add(LSumOfRecords);
+                BExport = new Button { Content = "Export do xls", Margin = new Thickness(25), Width = 150, Height = 30 };
+                BBack = new Button { Content = "Zpět", Margin = new Thickness(25), Width = 150, Height = 30 };
+                BExport.Click += (sender, e) => ExportToXls();
+                BBack.Click += (sender, e) => this.Close();
+                SPLine2.Children.Add(BExport);SPLine2.Children.Add(BBack);
+                SPMain.Children.Add(SPLine2);
+                DGList = new DataGrid { Width = 375, Height = 300, AutoGenerateColumns = false };
+                DataGridTextColumn firstNameCollum = new DataGridTextColumn { Header = "Jméno", Binding = new Binding("FirstName") };
+                DataGridTextColumn lastNameCollum = new DataGridTextColumn { Header = "Příjmení", Binding = new Binding("LastName") };
+                DataGridTextColumn nickNameCollum = new DataGridTextColumn { Header = "Přezdívka", Binding = new Binding("NickName") };
+                DGList.Columns.Add(firstNameCollum); DGList.Columns.Add(lastNameCollum); DGList.Columns.Add(nickNameCollum);   
+                SPMain.Children.Add(DGList);
+                this.Content = SPMain;
+
+            }
+            public void ExportToXls() 
+            {
+                SaveFileDialog saveFileDialog = new SaveFileDialog
+                {
+                    Title = "Uložit soubor",
+                    Filter = "All files (*.*)|*.*|Text files (*.txt)|*.txt",
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    string filePath = saveFileDialog.FileName;
+                    MessageBox.Show("File to be saved at: " + filePath);
+                    // Můžete zde zpracovat cestu pro uložení souboru
+                }
+            }
+            public async Task ShowList() 
+            {
+                DateOnly SelectedDate = DateOnly.FromDateTime(DPSelectedDate.SelectedDate.Value);
+                using (var context = new SUDBContext())
+                {
+                    var selectedRecords = await context.Records.Where(q => (q.InDay <= SelectedDate && q.OutDay >= SelectedDate)).ToListAsync();
+                    LSumOfRecords.Content = "Celkem: " + selectedRecords.Count;
+                    DGList.ItemsSource = selectedRecords;
+                }
+                
+            }
+        }
         public MainWindow()
         {
             InitializeComponent();
@@ -181,6 +251,12 @@ namespace Seznam_ucastniku
         private void Window_Activated(object sender, EventArgs e)
         {
             LoadData();
+        }
+
+        private void BNickNameList_Click(object sender, RoutedEventArgs e)
+        {
+            var WNickNameList = new CWNickNamesList();
+            WNickNameList.ShowDialog();
         }
     }
     public class BoolToTextConverter : IValueConverter
