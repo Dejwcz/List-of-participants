@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using Seznam_ucastniku.DataAcces;
 using Seznam_ucastniku.Entities;
 using System.Globalization;
@@ -7,14 +6,10 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Linq;
 using Microsoft.Win32;
+using ClosedXML.Excel;
 
 namespace Seznam_ucastniku
 {
@@ -169,14 +164,14 @@ namespace Seznam_ucastniku
                 StackPanel SPLine2 = new StackPanel { Orientation = Orientation.Horizontal };
                 LSelectedDate = new Label { Content = "Vyber datum", Margin = new Thickness(20), Width = 100, Height = 30 };
                 DPSelectedDate = new DatePicker { Width = 150, Height = 30 };
-                DPSelectedDate.SelectedDateChanged += (sender, e) => ShowList();
+                DPSelectedDate.SelectedDateChanged += async (sender, e) => await ShowList();
                 SPLine1.Children.Add(LSelectedDate); SPLine1.Children.Add(DPSelectedDate);
                 SPMain.Children.Add(SPLine1);
                 LSumOfRecords = new Label { Content = "Celkem: ", Width = 100, Height = 30 };
                 SPMain.Children.Add(LSumOfRecords);
                 BExport = new Button { Content = "Export do xls", Margin = new Thickness(25), Width = 150, Height = 30 };
                 BBack = new Button { Content = "Zpět", Margin = new Thickness(25), Width = 150, Height = 30 };
-                BExport.Click += (sender, e) => ExportToXls();
+                BExport.Click += async (sender, e) => await ExportToXls();
                 BBack.Click += (sender, e) => this.Close();
                 SPLine2.Children.Add(BExport);SPLine2.Children.Add(BBack);
                 SPMain.Children.Add(SPLine2);
@@ -187,22 +182,45 @@ namespace Seznam_ucastniku
                 DGList.Columns.Add(firstNameCollum); DGList.Columns.Add(lastNameCollum); DGList.Columns.Add(nickNameCollum);   
                 SPMain.Children.Add(DGList);
                 this.Content = SPMain;
-
             }
-            public void ExportToXls() 
+            public async Task ExportToXls() 
             {
-                SaveFileDialog saveFileDialog = new SaveFileDialog
+                DateOnly SelectedDate = DateOnly.FromDateTime(DPSelectedDate.SelectedDate.Value);
+                using (var context = new SUDBContext())
                 {
-                    Title = "Uložit soubor",
-                    Filter = "All files (*.*)|*.*|Text files (*.txt)|*.txt",
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-                };
+                    var selectedRecords = await context.Records.Where(q => (q.InDay <= SelectedDate && q.OutDay >= SelectedDate)).ToListAsync();
+                    if (selectedRecords.Count == 0) { MessageBox.Show("Není co ukládat"); }
+                    else
+                    {
+                        SaveFileDialog saveFileDialog = new SaveFileDialog
+                        {
+                            Title = "Uložit soubor",
+                            Filter = "XLSX files (*.xlsx)|*.xlsx",
+                            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                        };
 
-                if (saveFileDialog.ShowDialog() == true)
-                {
-                    string filePath = saveFileDialog.FileName;
-                    MessageBox.Show("File to be saved at: " + filePath);
-                    // Můžete zde zpracovat cestu pro uložení souboru
+                        if (saveFileDialog.ShowDialog() == true)
+                        {
+                            string filePath = saveFileDialog.FileName;
+                            var workbook = new XLWorkbook();
+                            var worksheet = workbook.Worksheets.Add("Seznam");
+                            worksheet.Cell(1, 1).Value = "Jméno";
+                            worksheet.Cell(1, 2).Value = "Příjmení";
+                            worksheet.Cell(1, 3).Value = "Přezdívka";
+                            for (int i = 0; i<selectedRecords.Count; i++)
+                            {
+                                worksheet.Cell(i + 2, 1).Value = selectedRecords[i].FirstName;
+                                worksheet.Cell(i + 2, 2).Value = selectedRecords[i].LastName;
+                                worksheet.Cell(i + 2, 3).Value = selectedRecords[i].NickName;                         
+                            }
+                            try
+                            {
+                                workbook.SaveAs(filePath);
+                            }
+                            catch (Exception ex) { MessageBox.Show("Chyba při ukládání souboru: " + ex.Message); }
+                            MessageBox.Show("Soubor byl uložen do: " + filePath);
+                        }
+                    }
                 }
             }
             public async Task ShowList() 
@@ -211,7 +229,7 @@ namespace Seznam_ucastniku
                 using (var context = new SUDBContext())
                 {
                     var selectedRecords = await context.Records.Where(q => (q.InDay <= SelectedDate && q.OutDay >= SelectedDate)).ToListAsync();
-                    LSumOfRecords.Content = "Celkem: " + selectedRecords.Count;
+                    LSumOfRecords.Content = $"Celkem: { selectedRecords.Count}";
                     DGList.ItemsSource = selectedRecords;
                 }
                 
@@ -231,13 +249,11 @@ namespace Seznam_ucastniku
             }
                 
         }
-
         private void BNewRecord_Click(object sender, RoutedEventArgs e)
         {
             var WNewRecord = new CWNewRecord();
             WNewRecord.ShowDialog();
         }
-
         private void DGRecords_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (sender is DataGrid datagrid && datagrid.SelectedItem is Record selectedRecord)
@@ -247,12 +263,10 @@ namespace Seznam_ucastniku
                 WEditRecord.ShowDialog();
             }
         }
-
         private void Window_Activated(object sender, EventArgs e)
         {
             LoadData();
         }
-
         private void BNickNameList_Click(object sender, RoutedEventArgs e)
         {
             var WNickNameList = new CWNickNamesList();
