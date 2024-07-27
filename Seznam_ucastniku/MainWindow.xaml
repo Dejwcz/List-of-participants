@@ -11,8 +11,8 @@
     </Window.Resources>
 
     <Grid>
-        <Button x:Name="BNewRecord" Content="Nový záznam" HorizontalAlignment="Left" Margin="50,50,0,0" VerticalAlignment="Top" Height="40" Width="140" Click="BNewRecord_Click" Grid.ColumnSpan="2"/>
-        <Button x:Name="BStats" Content="Počty" HorizontalAlignment="Right" Margin="0,50,50,0" VerticalAlignment="Top" Width="140" Height="40" Grid.Column="2"/>
+        <Button x:Name="BNewRecord" Content="Nový záznam" HorizontalAlignment="Left" Margin="50,60,0,0" VerticalAlignment="Top" Height="40" Width="140" Click="BNewRecord_Click" Grid.ColumnSpan="2"/>
+        <Button x:Name="BStats" Content="Počty" HorizontalAlignment="Right" Margin="0,60,50,0" VerticalAlignment="Top" Width="140" Height="40" Grid.Column="2"/>
         <DataGrid x:Name="DGRecords" AutoGenerateColumns="False" Margin="49,120,49,50"  MinWidth="700" MinHeight="300" Grid.ColumnSpan="3" IsReadOnly="True" MouseDoubleClick="DGRecords_MouseDoubleClick">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Jméno" Binding="{Binding FirstName}" Width="*"/>
@@ -24,6 +24,8 @@
                 <DataGridTextColumn Header="Oběd při odjezdu" Binding="{Binding OutDayLunch, Converter={StaticResource BoolToTextConverter}}" Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
-        <Button x:Name="BNickNameList" Content="Seznam s přezdívkami" HorizontalAlignment="Left" Margin="229,50,0,0" VerticalAlignment="Top" Width="140" Height="40" Click="BNickNameList_Click"/>
+        <Button x:Name="BNickNameList" Content="Seznam s přezdívkami" HorizontalAlignment="Left" Margin="230,60,0,0" VerticalAlignment="Top" Width="140" Height="40" Click="BNickNameList_Click"/>
+        <Button x:Name="BPeriodChange" Content="Změna období" HorizontalAlignment="Left" Margin="410,60,0,0" VerticalAlignment="Top" Width="140" Height="40" Click="BPeriodChange_Click"/>
+        <Label x:Name="LPeriod" Content="Zvolené období od: do:" HorizontalAlignment="Left" Height="25" Margin="50,25,0,0" VerticalAlignment="Top" Width="320"/>
     </Grid>
 </Window>
